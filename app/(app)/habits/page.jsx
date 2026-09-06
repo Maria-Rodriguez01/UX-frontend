@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AddRounded, DeleteOutlineRounded, EditOutlined, SearchRounded } from '@mui/icons-material'
+import { AddRounded, CheckCircleRounded, DeleteOutlineRounded, EditOutlined, SearchRounded } from '@mui/icons-material'
 import {
   Box,
   Button,
@@ -25,11 +25,23 @@ import {
   Typography,
 } from '@mui/material'
 import { deleteHabit, getHabits } from '../../../services/habits'
-import { frecuenciaLabel } from '../../../utils'
+import { getRecords } from '../../../services/records'
+import { frecuenciaLabel, todayKey } from '../../../utils'
+import { useCompleteHabit } from '../../../hooks/useCompleteHabit'
 import ErrorState from '../../../components/ErrorState'
 import EmptyState from '../../../components/EmptyState'
 import FeedbackSnackbar from '../../../components/FeedbackSnackbar'
 import LoadingState from '../../../components/LoadingState'
+
+function unwrapRecords(response) {
+  return Array.isArray(response) ? response : response?.records || []
+}
+
+function completedTodayIds(records) {
+  return new Set(
+    records.filter((record) => record.completado !== false).map((record) => record.habitoId || record.habito),
+  )
+}
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState([])
@@ -40,6 +52,20 @@ export default function HabitsPage() {
   const [habitToDelete, setHabitToDelete] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [feedback, setFeedback] = useState(null)
+  const [completedHabitIds, setCompletedHabitIds] = useState(() => new Set())
+
+  const { completingId, complete } = useCompleteHabit({
+    onCompleted: (habitId, { already } = {}) => {
+      setCompletedHabitIds((currentIds) => new Set(currentIds).add(habitId))
+      setFeedback({
+        severity: 'success',
+        message: already ? 'Este hábito ya estaba completado hoy.' : 'Hábito marcado como completado.',
+      })
+    },
+    onError: (message) => {
+      setFeedback({ severity: 'error', message })
+    },
+  })
 
   const loadHabits = useCallback(async () => {
     try {
@@ -54,22 +80,32 @@ export default function HabitsPage() {
     }
   }, [])
 
+  const loadTodayRecords = useCallback(async () => {
+    const response = await getRecords({ desde: todayKey(), hasta: todayKey() })
+    setCompletedHabitIds(completedTodayIds(unwrapRecords(response)))
+  }, [])
+
   const handleRetry = useCallback(() => {
     setError(null)
     setIsLoading(true)
     loadHabits()
-  }, [loadHabits])
+    loadTodayRecords()
+  }, [loadHabits, loadTodayRecords])
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
       try {
-        const response = await getHabits()
+        const [response, recordsResponse] = await Promise.all([
+          getHabits(),
+          getRecords({ desde: todayKey(), hasta: todayKey() }),
+        ])
         const habitList = Array.isArray(response) ? response : response?.habits || response?.data || []
         if (cancelled) return
         setError(null)
         setHabits(habitList)
+        setCompletedHabitIds(completedTodayIds(unwrapRecords(recordsResponse)))
       } catch (requestError) {
         if (cancelled) return
         setError(requestError.message || 'No pudimos cargar tus hábitos. Intenta nuevamente.')
@@ -94,6 +130,7 @@ export default function HabitsPage() {
       setHabitToDelete(null)
       setFeedback({ severity: 'success', message: 'Hábito eliminado correctamente.' })
       await loadHabits()
+      await loadTodayRecords()
     } catch (requestError) {
       setFeedback({
         severity: 'error',
@@ -175,6 +212,8 @@ export default function HabitsPage() {
           {filteredHabits.map((habit) => {
             const isActive = habit.activo !== false
             const habitId = habit.id || habit._id
+            const isCompleted = completedHabitIds.has(habitId)
+            const isCompleting = completingId === habitId
             return (
               <Card key={habitId}>
                 <CardContent>
@@ -183,6 +222,7 @@ export default function HabitsPage() {
                       <Stack alignItems="center" direction="row" spacing={1}>
                         <Typography component="h2" variant="h6">{habit.nombre}</Typography>
                         <Chip color={isActive ? 'success' : 'default'} label={isActive ? 'Activo' : 'Inactivo'} size="small" />
+                        {isCompleted && <Chip color="primary" label="Completado hoy" size="small" />}
                       </Stack>
                       {(habit.descripcion || habit.description) && <Typography color="text.secondary" sx={{ mt: 1 }}>{habit.descripcion || habit.description}</Typography>}
                       <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 2 }}>
@@ -192,6 +232,17 @@ export default function HabitsPage() {
                       </Stack>
                     </Box>
                     <Stack alignItems="center" direction="row" spacing={1}>
+                      {isActive && (
+                        <Button
+                          disabled={!habitId || isCompleted || isCompleting}
+                          onClick={() => complete(habit)}
+                          size="small"
+                          startIcon={isCompleting ? <CircularProgress size={16} /> : <CheckCircleRounded />}
+                          variant={isCompleted ? 'outlined' : 'contained'}
+                        >
+                          {isCompleting ? 'Guardando...' : isCompleted ? 'Completado' : 'Completar'}
+                        </Button>
+                      )}
                       <Button component={Link} disabled={!habitId} href={`/habits/${habitId}/edit`} size="small" startIcon={<EditOutlined />} variant="outlined">Editar</Button>
                       <Button color="error" disabled={!habitId} onClick={() => setHabitToDelete(habit)} size="small" startIcon={<DeleteOutlineRounded />} variant="outlined">Eliminar</Button>
                     </Stack>

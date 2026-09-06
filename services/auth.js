@@ -1,9 +1,9 @@
 import { apiRequest } from './api'
 
-export function login(credentials) {
+export function login({ email, password }) {
   return apiRequest('/auth/login', {
     method: 'POST',
-    body: JSON.stringify(credentials),
+    body: JSON.stringify({ correo: email, contraseña: password }),
   })
 }
 

@@ -1,12 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BarChartRounded, CheckCircleRounded, EmojiEventsRounded, TodayRounded } from '@mui/icons-material'
-import { Box, Card, CardContent, Chip, LinearProgress, Stack, Typography } from '@mui/material'
-import ErrorState from '../../../components/ErrorState'
-import LoadingState from '../../../components/LoadingState'
+import Link from 'next/link'
+import { BarChartRounded, CheckCircleRounded, EmojiEventsRounded, EventAvailableRounded, TodayRounded } from '@mui/icons-material'
+import { Box, Button, Card, CardContent, Chip, CircularProgress, LinearProgress, Stack, Typography } from '@mui/material'
 import { getHabits } from '../../../services/habits'
-import { frecuenciaLabel } from '../../../utils'
+import { getDailyStatistics, getMonthlyStatistics, getWeeklyStatistics } from '../../../services/statistics'
+import { pct, todayKey } from '../../../utils'
+import { useCompleteHabit } from '../../../hooks/useCompleteHabit'
+import ErrorState from '../../../components/ErrorState'
+import EmptyState from '../../../components/EmptyState'
+import FeedbackSnackbar from '../../../components/FeedbackSnackbar'
+import LoadingState from '../../../components/LoadingState'
 
 function unwrapCollection(response, key) {
   return Array.isArray(response) ? response : response?.[key] || response?.data || []
@@ -26,18 +31,43 @@ function MetricCard({ icon, label, value }) {
   )
 }
 
+function PeriodProgress({ completados, totalDias, habits }) {
+  if (!totalDias) {
+    return <Typography color="text.secondary">Todavía no hay progreso registrado.</Typography>
+  }
+  return (
+    <>
+      <Stack alignItems="center" direction="row" justifyContent="space-between" spacing={1}>
+        <Typography color="text.secondary" variant="body2">{completados} de {totalDias} completados</Typography>
+        <Typography color="text.secondary" variant="body2">{pct(completados, totalDias)}%</Typography>
+      </Stack>
+      <LinearProgress sx={{ mt: 1.5 }} value={pct(completados, totalDias)} variant="determinate" />
+      <Stack spacing={1} sx={{ mt: 2 }}>
+        {habits.map((habit) => (
+          <Stack alignItems="center" direction="row" justifyContent="space-between" key={habit.id}>
+            <Typography variant="body2">{habit.nombre}</Typography>
+            <Typography color="text.secondary" variant="body2">{habit.completados}/{habit.totalDias}</Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </>
+  )
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  const [feedback, setFeedback] = useState(null)
 
   const loadDashboard = useCallback(async () => {
-    try {
-      const habitsResponse = await getHabits()
-      setError(null)
-      setData({ habits: unwrapCollection(habitsResponse, 'habits') })
-    } catch (requestError) {
-      setError(requestError.message || 'No pudimos cargar el Dashboard. Intenta nuevamente.')
-    }
+    const [, daily, weekly, monthly] = await Promise.all([
+      getHabits(),
+      getDailyStatistics(todayKey()),
+      getWeeklyStatistics(todayKey()),
+      getMonthlyStatistics(todayKey()),
+    ])
+    setError(null)
+    setData({ habits: daily.habits, daily, weekly, monthly })
   }, [])
 
   const handleRetry = useCallback(() => {
@@ -45,15 +75,34 @@ export default function DashboardPage() {
     loadDashboard()
   }, [loadDashboard])
 
+  const { completingId, complete } = useCompleteHabit({
+    onCompleted: (habitId, { already } = {}) => {
+      setFeedback({
+        severity: 'success',
+        message: already ? 'Este hábito ya estaba completado hoy.' : 'Hábito marcado como completado.',
+      })
+      loadDashboard()
+    },
+    onError: (message) => {
+      setFeedback({ severity: 'error', message })
+    },
+  })
+
   useEffect(() => {
     let cancelled = false
 
     async function load() {
       try {
-        const habitsResponse = await getHabits()
+        const [habitsResponse, daily, weekly, monthly] = await Promise.all([
+          getHabits(),
+          getDailyStatistics(todayKey()),
+          getWeeklyStatistics(todayKey()),
+          getMonthlyStatistics(todayKey()),
+        ])
         if (cancelled) return
+        const habitList = unwrapCollection(habitsResponse, 'habits')
         setError(null)
-        setData({ habits: unwrapCollection(habitsResponse, 'habits') })
+        setData({ habits: habitList, daily, weekly, monthly })
       } catch (requestError) {
         if (cancelled) return
         setError(requestError.message || 'No pudimos cargar el Dashboard. Intenta nuevamente.')
@@ -78,11 +127,21 @@ export default function DashboardPage() {
       return counts
     }, {})
 
+    const dayHabits = data.daily?.habits || []
+
     return {
       total,
       activeHabits,
       inactiveCount,
       activesPct: total ? Math.round((activeHabits.length / total) * 100) : 0,
+      hasNoHabits: total === 0,
+      hasNoDayProgress: dayHabits.length === 0,
+      dayHabits,
+      completadosHoy: data.daily?.completados ?? 0,
+      pendientesHoy: data.daily?.pendientes ?? 0,
+      pctHoy: data.daily ? pct(data.daily.completados, data.daily.habitsCount) : 0,
+      weekly: data.weekly,
+      monthly: data.monthly,
       byFrecuencia: [
         { label: 'Diaria', count: byFrecuencia.daily || 0 },
         { label: 'Semanal', count: byFrecuencia.weekly || 0 },
@@ -106,43 +165,102 @@ export default function DashboardPage() {
           <Stack direction="row" flexWrap="wrap" gap={2}>
             <MetricCard icon={<TodayRounded color="primary" />} label="Total de hábitos" value={dashboard.total} />
             <MetricCard icon={<CheckCircleRounded color="success" />} label="Hábitos activos" value={dashboard.activeHabits.length} />
-            <MetricCard icon={<BarChartRounded color="primary" />} label="Hábitos inactivos" value={dashboard.inactiveCount} />
-            <MetricCard icon={<EmojiEventsRounded color="secondary" />} label="Hábitos activos" value={`${dashboard.activesPct}%`} />
+            <MetricCard icon={<EmojiEventsRounded color="primary" />} label="Completados hoy" value={dashboard.completadosHoy} />
+            <MetricCard icon={<EventAvailableRounded color="secondary" />} label="Pendientes hoy" value={dashboard.pendientesHoy} />
+            <MetricCard icon={<BarChartRounded color="primary" />} label="Progreso de hoy" value={`${dashboard.pctHoy}%`} />
           </Stack>
 
-          {dashboard.total === 0 ? (
-            <Card><CardContent sx={{ py: 6, textAlign: 'center' }}><Typography component="h2" variant="h6">Aún no tienes hábitos.</Typography><Typography color="text.secondary" sx={{ mt: 1 }}>Crea tu primer hábito para comenzar a ver tu progreso.</Typography></CardContent></Card>
+          {dashboard.hasNoHabits ? (
+            <EmptyState
+              action={<Button component={Link} href="/habits/new" variant="outlined">Crea tu primer hábito</Button>}
+              description="Comienza con un hábito pequeño y dale seguimiento."
+              title="Aún no tienes hábitos."
+            />
           ) : (
-            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
-              <Card sx={{ flex: 1 }}>
-                <CardContent>
-                  <Typography component="h2" variant="h6">Hábitos activos</Typography>
-                  <Stack spacing={1.25} sx={{ mt: 2 }}>
-                    {dashboard.activeHabits.map((habit) => <Stack alignItems="center" direction="row" justifyContent="space-between" key={habit.id || habit._id}><Typography>{habit.nombre}</Typography><Chip label={frecuenciaLabel(habit.frecuencia)} size="small" variant="outlined" /></Stack>)}
-                    {dashboard.activeHabits.length === 0 && <Typography color="text.secondary">No tienes hábitos activos.</Typography>}
-                  </Stack>
-                </CardContent>
-              </Card>
-              <Card sx={{ flex: 1 }}>
-                <CardContent>
-                  <Typography component="h2" variant="h6">Hábitos por frecuencia</Typography>
-                  <Stack spacing={1.5} sx={{ mt: 2 }}>
-                    {dashboard.byFrecuencia.map((item) => (
-                      <Stack key={item.label} spacing={0.5}>
-                        <Stack alignItems="center" direction="row" justifyContent="space-between">
-                          <Typography color="text.secondary" variant="body2">{item.label}</Typography>
-                          <Typography color="text.secondary" variant="body2">{item.count}</Typography>
-                        </Stack>
-                        <LinearProgress value={dashboard.total ? (item.count / dashboard.total) * 100 : 0} variant="determinate" />
+            <>
+              <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
+                <Card sx={{ flex: 1 }}>
+                  <CardContent>
+                    <Typography component="h2" variant="h6">Hábitos del día</Typography>
+                    {dashboard.hasNoDayProgress ? (
+                      <Typography color="text.secondary" sx={{ mt: 2 }}>Sin hábitos para hoy.</Typography>
+                    ) : (
+                      <Stack spacing={1.25} sx={{ mt: 2 }}>
+                        {dashboard.dayHabits.map((habit) => {
+                          const isCompleting = completingId === habit.id
+                          return (
+                            <Stack alignItems="center" direction="row" justifyContent="space-between" key={habit.id}>
+                              <Typography>{habit.nombre}</Typography>
+                              {habit.completado ? (
+                                <Chip color="success" label="Completado" size="small" />
+                              ) : (
+                                <Button
+                                  disabled={isCompleting}
+                                  onClick={() => complete(habit)}
+                                  size="small"
+                                  startIcon={isCompleting ? <CircularProgress size={16} /> : <CheckCircleRounded />}
+                                  variant="contained"
+                                >
+                                  {isCompleting ? 'Guardando...' : 'Completar'}
+                                </Button>
+                              )}
+                            </Stack>
+                          )
+                        })}
                       </Stack>
-                    ))}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Stack>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card sx={{ flex: 1 }}>
+                  <CardContent>
+                    <Typography component="h2" variant="h6">Progreso de la semana</Typography>
+                    <Box sx={{ mt: 2 }}>
+                      <PeriodProgress
+                        completados={dashboard.weekly?.completados ?? 0}
+                        habits={dashboard.weekly?.habits || []}
+                        totalDias={dashboard.weekly?.totalDias ?? 0}
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Stack>
+
+              <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
+                <Card sx={{ flex: 1 }}>
+                  <CardContent>
+                    <Typography component="h2" variant="h6">Progreso del mes</Typography>
+                    <Box sx={{ mt: 2 }}>
+                      <PeriodProgress
+                        completados={dashboard.monthly?.completados ?? 0}
+                        habits={dashboard.monthly?.habits || []}
+                        totalDias={dashboard.monthly?.totalDias ?? 0}
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+                <Card sx={{ flex: 1 }}>
+                  <CardContent>
+                    <Typography component="h2" variant="h6">Hábitos por frecuencia</Typography>
+                    <Stack spacing={1.5} sx={{ mt: 2 }}>
+                      {dashboard.byFrecuencia.map((item) => (
+                        <Stack key={item.label} spacing={0.5}>
+                          <Stack alignItems="center" direction="row" justifyContent="space-between">
+                            <Typography color="text.secondary" variant="body2">{item.label}</Typography>
+                            <Typography color="text.secondary" variant="body2">{item.count}</Typography>
+                          </Stack>
+                          <LinearProgress value={dashboard.total ? (item.count / dashboard.total) * 100 : 0} variant="determinate" />
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Stack>
+            </>
           )}
         </>
       )}
+
+      <FeedbackSnackbar feedback={feedback} onClose={() => setFeedback(null)} />
     </Stack>
   )
 }

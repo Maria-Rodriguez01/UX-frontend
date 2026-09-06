@@ -18,9 +18,6 @@ const quicksand = Quicksand({
 export const metadata = {
   title: 'Habit Tracker',
   description: 'Seguimiento de hábitos y progreso personal.',
-  icons: {
-    icon: '/favicon.svg',
-  },
 }
 
 export default function RootLayout({ children }) {
