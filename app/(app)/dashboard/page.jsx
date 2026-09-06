@@ -1,74 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BarChartRounded, CheckCircleRounded, EmojiEventsRounded, LocalFireDepartmentRounded, TodayRounded } from '@mui/icons-material'
+import { BarChartRounded, CheckCircleRounded, EmojiEventsRounded, TodayRounded } from '@mui/icons-material'
 import { Box, Card, CardContent, Chip, LinearProgress, Stack, Typography } from '@mui/material'
 import ErrorState from '../../../components/ErrorState'
 import LoadingState from '../../../components/LoadingState'
 import { getHabits } from '../../../services/habits'
-import { getRecords } from '../../../services/records'
+import { frecuenciaLabel } from '../../../utils'
 
 function unwrapCollection(response, key) {
   return Array.isArray(response) ? response : response?.[key] || response?.data || []
-}
-
-function dateKey(date) {
-  return date.toLocaleDateString('en-CA')
-}
-
-function recordDateKey(record) {
-  return record.fecha ? dateKey(new Date(record.fecha)) : null
-}
-
-function completedRecords(records) {
-  return records.filter((record) => record.completado !== false)
-}
-
-function calculateStreaks(records) {
-  const completedDates = new Set(completedRecords(records).map(recordDateKey).filter(Boolean))
-  const today = new Date()
-  let current = 0
-  let cursor = new Date(today)
-
-  while (completedDates.has(dateKey(cursor))) {
-    current += 1
-    cursor.setDate(cursor.getDate() - 1)
-  }
-
-  const orderedDates = [...completedDates].sort()
-  let best = 0
-  let streak = 0
-  let previous = null
-
-  orderedDates.forEach((value) => {
-    const date = new Date(`${value}T12:00:00`)
-    if (previous && (date - previous) / 86_400_000 === 1) streak += 1
-    else streak = 1
-    best = Math.max(best, streak)
-    previous = date
-  })
-
-  return { current, best }
-}
-
-function getWeekProgress(records, activeHabitCount) {
-  const today = new Date()
-  const completed = completedRecords(records)
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(today)
-    date.setDate(today.getDate() - (6 - index))
-    const key = dateKey(date)
-    const count = new Set(
-      completed
-        .filter((record) => recordDateKey(record) === key)
-        .map((record) => record.habito || record.habit || record.habitId),
-    ).size
-    return {
-      label: new Intl.DateTimeFormat('es', { weekday: 'short' }).format(date),
-      percentage: activeHabitCount ? Math.min(Math.round((count / activeHabitCount) * 100), 100) : 0,
-    }
-  })
 }
 
 function MetricCard({ icon, label, value }) {
@@ -90,39 +31,63 @@ export default function DashboardPage() {
   const [error, setError] = useState(null)
 
   const loadDashboard = useCallback(async () => {
-    setError(null)
     try {
-      const [habitsResponse, recordsResponse] = await Promise.all([getHabits(), getRecords()])
-      setData({
-        habits: unwrapCollection(habitsResponse, 'habits'),
-        records: unwrapCollection(recordsResponse, 'records'),
-      })
+      const habitsResponse = await getHabits()
+      setError(null)
+      setData({ habits: unwrapCollection(habitsResponse, 'habits') })
     } catch (requestError) {
       setError(requestError.message || 'No pudimos cargar el Dashboard. Intenta nuevamente.')
     }
   }, [])
 
-  useEffect(() => {
+  const handleRetry = useCallback(() => {
+    setError(null)
     loadDashboard()
   }, [loadDashboard])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const habitsResponse = await getHabits()
+        if (cancelled) return
+        setError(null)
+        setData({ habits: unwrapCollection(habitsResponse, 'habits') })
+      } catch (requestError) {
+        if (cancelled) return
+        setError(requestError.message || 'No pudimos cargar el Dashboard. Intenta nuevamente.')
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const dashboard = useMemo(() => {
     if (!data) return null
+    const total = data.habits.length
     const activeHabits = data.habits.filter((habit) => habit.activo !== false)
-    const completedToday = new Set(
-      completedRecords(data.records)
-        .filter((record) => recordDateKey(record) === dateKey(new Date()))
-        .map((record) => record.habito || record.habit || record.habitId),
-    ).size
-    const completion = activeHabits.length ? Math.round((completedToday / activeHabits.length) * 100) : 0
-    const streaks = calculateStreaks(data.records)
+    const inactiveCount = total - activeHabits.length
+
+    const byFrecuencia = data.habits.reduce((counts, habit) => {
+      const key = habit.frecuencia || 'custom'
+      counts[key] = (counts[key] || 0) + 1
+      return counts
+    }, {})
 
     return {
+      total,
       activeHabits,
-      completedToday,
-      completion,
-      streaks,
-      weekProgress: getWeekProgress(data.records, activeHabits.length),
+      inactiveCount,
+      activesPct: total ? Math.round((activeHabits.length / total) * 100) : 0,
+      byFrecuencia: [
+        { label: 'Diaria', count: byFrecuencia.daily || 0 },
+        { label: 'Semanal', count: byFrecuencia.weekly || 0 },
+        { label: 'Personalizada', count: byFrecuencia.custom || 0 },
+      ],
     }
   }, [data])
 
@@ -134,37 +99,44 @@ export default function DashboardPage() {
       </Box>
 
       {!data && !error && <LoadingState message="Cargando Dashboard..." />}
-      {error && <ErrorState message={error} onRetry={loadDashboard} />}
+      {error && <ErrorState message={error} onRetry={handleRetry} />}
 
       {dashboard && (
         <>
           <Stack direction="row" flexWrap="wrap" gap={2}>
-            <MetricCard icon={<TodayRounded color="primary" />} label="Hábitos activos" value={dashboard.activeHabits.length} />
-            <MetricCard icon={<CheckCircleRounded color="success" />} label="Completados hoy" value={dashboard.completedToday} />
-            <MetricCard icon={<LocalFireDepartmentRounded color="primary" />} label="Racha actual" value={`${dashboard.streaks.current} días`} />
-            <MetricCard icon={<EmojiEventsRounded color="secondary" />} label="Mejor racha" value={`${dashboard.streaks.best} días`} />
-            <MetricCard icon={<BarChartRounded color="primary" />} label="Cumplimiento de hoy" value={`${dashboard.completion}%`} />
+            <MetricCard icon={<TodayRounded color="primary" />} label="Total de hábitos" value={dashboard.total} />
+            <MetricCard icon={<CheckCircleRounded color="success" />} label="Hábitos activos" value={dashboard.activeHabits.length} />
+            <MetricCard icon={<BarChartRounded color="primary" />} label="Hábitos inactivos" value={dashboard.inactiveCount} />
+            <MetricCard icon={<EmojiEventsRounded color="secondary" />} label="Hábitos activos" value={`${dashboard.activesPct}%`} />
           </Stack>
 
-          {dashboard.activeHabits.length === 0 ? (
-            <Card><CardContent sx={{ py: 6, textAlign: 'center' }}><Typography component="h2" variant="h6">Aún no tienes hábitos activos.</Typography><Typography color="text.secondary" sx={{ mt: 1 }}>Crea un hábito para comenzar a ver tu progreso.</Typography></CardContent></Card>
+          {dashboard.total === 0 ? (
+            <Card><CardContent sx={{ py: 6, textAlign: 'center' }}><Typography component="h2" variant="h6">Aún no tienes hábitos.</Typography><Typography color="text.secondary" sx={{ mt: 1 }}>Crea tu primer hábito para comenzar a ver tu progreso.</Typography></CardContent></Card>
           ) : (
             <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
               <Card sx={{ flex: 1 }}>
                 <CardContent>
-                  <Typography component="h2" variant="h6">Hábitos del día</Typography>
+                  <Typography component="h2" variant="h6">Hábitos activos</Typography>
                   <Stack spacing={1.25} sx={{ mt: 2 }}>
-                    {dashboard.activeHabits.map((habit) => <Stack alignItems="center" direction="row" justifyContent="space-between" key={habit.id || habit._id}><Typography>{habit.nombre}</Typography><Chip label={habit.frecuencia || 'Activo'} size="small" variant="outlined" /></Stack>)}
+                    {dashboard.activeHabits.map((habit) => <Stack alignItems="center" direction="row" justifyContent="space-between" key={habit.id || habit._id}><Typography>{habit.nombre}</Typography><Chip label={frecuenciaLabel(habit.frecuencia)} size="small" variant="outlined" /></Stack>)}
+                    {dashboard.activeHabits.length === 0 && <Typography color="text.secondary">No tienes hábitos activos.</Typography>}
                   </Stack>
                 </CardContent>
               </Card>
               <Card sx={{ flex: 1 }}>
                 <CardContent>
-                  <Typography component="h2" variant="h6">Progreso semanal</Typography>
-                  <Stack direction="row" spacing={1} sx={{ alignItems: 'end', height: 160, mt: 2 }}>
-                    {dashboard.weekProgress.map((day) => <Stack alignItems="center" key={day.label} spacing={0.75} sx={{ flex: 1, height: '100%', justifyContent: 'end' }}><Box sx={{ bgcolor: 'primary.main', borderRadius: 1, height: `${Math.max(day.percentage, 4)}%`, width: '100%' }} /><Typography color="text.secondary" sx={{ textTransform: 'capitalize' }} variant="caption">{day.label}</Typography></Stack>)}
+                  <Typography component="h2" variant="h6">Hábitos por frecuencia</Typography>
+                  <Stack spacing={1.5} sx={{ mt: 2 }}>
+                    {dashboard.byFrecuencia.map((item) => (
+                      <Stack key={item.label} spacing={0.5}>
+                        <Stack alignItems="center" direction="row" justifyContent="space-between">
+                          <Typography color="text.secondary" variant="body2">{item.label}</Typography>
+                          <Typography color="text.secondary" variant="body2">{item.count}</Typography>
+                        </Stack>
+                        <LinearProgress value={dashboard.total ? (item.count / dashboard.total) * 100 : 0} variant="determinate" />
+                      </Stack>
+                    ))}
                   </Stack>
-                  <LinearProgress sx={{ mt: 2 }} value={dashboard.completion} variant="determinate" />
                 </CardContent>
               </Card>
             </Stack>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AddRounded, CheckCircleRounded, DeleteOutlineRounded, EditOutlined, SearchRounded } from '@mui/icons-material'
+import { AddRounded, DeleteOutlineRounded, EditOutlined, SearchRounded } from '@mui/icons-material'
 import {
   Box,
   Button,
@@ -25,7 +25,7 @@ import {
   Typography,
 } from '@mui/material'
 import { deleteHabit, getHabits } from '../../../services/habits'
-import { createRecord } from '../../../services/records'
+import { frecuenciaLabel } from '../../../utils'
 import ErrorState from '../../../components/ErrorState'
 import EmptyState from '../../../components/EmptyState'
 import FeedbackSnackbar from '../../../components/FeedbackSnackbar'
@@ -40,16 +40,12 @@ export default function HabitsPage() {
   const [habitToDelete, setHabitToDelete] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [feedback, setFeedback] = useState(null)
-  const [completedHabitIds, setCompletedHabitIds] = useState(() => new Set())
-  const [completingHabitId, setCompletingHabitId] = useState(null)
 
   const loadHabits = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-
     try {
       const response = await getHabits()
       const habitList = Array.isArray(response) ? response : response?.habits || response?.data || []
+      setError(null)
       setHabits(habitList)
     } catch (requestError) {
       setError(requestError.message || 'No pudimos cargar tus hábitos. Intenta nuevamente.')
@@ -58,9 +54,35 @@ export default function HabitsPage() {
     }
   }, [])
 
-  useEffect(() => {
+  const handleRetry = useCallback(() => {
+    setError(null)
+    setIsLoading(true)
     loadHabits()
   }, [loadHabits])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const response = await getHabits()
+        const habitList = Array.isArray(response) ? response : response?.habits || response?.data || []
+        if (cancelled) return
+        setError(null)
+        setHabits(habitList)
+      } catch (requestError) {
+        if (cancelled) return
+        setError(requestError.message || 'No pudimos cargar tus hábitos. Intenta nuevamente.')
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleDelete() {
     if (!habitToDelete) return
@@ -79,30 +101,6 @@ export default function HabitsPage() {
       })
     } finally {
       setIsDeleting(false)
-    }
-  }
-
-  async function handleComplete(habit) {
-    const habitId = habit.id || habit._id
-    if (!habitId || completedHabitIds.has(habitId)) return
-
-    setCompletingHabitId(habitId)
-
-    try {
-      await createRecord({
-        habito: habitId,
-        fecha: new Date().toISOString(),
-        completado: true,
-      })
-      setCompletedHabitIds((currentIds) => new Set(currentIds).add(habitId))
-      setFeedback({ severity: 'success', message: 'Hábito marcado como completado.' })
-    } catch (requestError) {
-      setFeedback({
-        severity: 'error',
-        message: requestError.message || 'No pudimos completar el hábito. Intenta nuevamente.',
-      })
-    } finally {
-      setCompletingHabitId(null)
     }
   }
 
@@ -162,7 +160,7 @@ export default function HabitsPage() {
 
       {isLoading && <LoadingState message="Cargando hábitos..." />}
 
-      {error && <ErrorState message={error} onRetry={loadHabits} />}
+      {error && <ErrorState message={error} onRetry={handleRetry} />}
 
       {!isLoading && !error && filteredHabits.length === 0 && (
         <EmptyState
@@ -177,7 +175,6 @@ export default function HabitsPage() {
           {filteredHabits.map((habit) => {
             const isActive = habit.activo !== false
             const habitId = habit.id || habit._id
-            const isCompleted = completedHabitIds.has(habitId)
             return (
               <Card key={habitId}>
                 <CardContent>
@@ -186,19 +183,15 @@ export default function HabitsPage() {
                       <Stack alignItems="center" direction="row" spacing={1}>
                         <Typography component="h2" variant="h6">{habit.nombre}</Typography>
                         <Chip color={isActive ? 'success' : 'default'} label={isActive ? 'Activo' : 'Inactivo'} size="small" />
-                        {isCompleted && <Chip color="primary" label="Completado hoy" size="small" />}
                       </Stack>
                       {(habit.descripcion || habit.description) && <Typography color="text.secondary" sx={{ mt: 1 }}>{habit.descripcion || habit.description}</Typography>}
                       <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 2 }}>
                         {(habit.categoria || habit.categoría) && <Chip label={habit.categoria || habit.categoría} size="small" variant="outlined" />}
-                        {habit.frecuencia && <Chip label={habit.frecuencia} size="small" variant="outlined" />}
+                        {habit.frecuencia && <Chip label={frecuenciaLabel(habit.frecuencia)} size="small" variant="outlined" />}
                         {habit.prioridad && <Chip label={`Prioridad: ${habit.prioridad}`} size="small" variant="outlined" />}
                       </Stack>
                     </Box>
-                    <Stack direction="row" spacing={1}>
-                      <Button disabled={!habitId || isCompleted || completingHabitId === habitId} onClick={() => handleComplete(habit)} size="small" startIcon={completingHabitId === habitId ? <CircularProgress size={16} /> : <CheckCircleRounded />} variant="contained">
-                        {isCompleted ? 'Completado' : 'Completar'}
-                      </Button>
+                    <Stack alignItems="center" direction="row" spacing={1}>
                       <Button component={Link} disabled={!habitId} href={`/habits/${habitId}/edit`} size="small" startIcon={<EditOutlined />} variant="outlined">Editar</Button>
                       <Button color="error" disabled={!habitId} onClick={() => setHabitToDelete(habit)} size="small" startIcon={<DeleteOutlineRounded />} variant="outlined">Eliminar</Button>
                     </Stack>

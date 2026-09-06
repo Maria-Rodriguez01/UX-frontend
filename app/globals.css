@@ -1,8 +1,6 @@
 :root {
   color: #29272d;
   background: #f7f3ea;
-  --font-inter: Inter, "Segoe UI", Arial, sans-serif;
-  --font-quicksand: Quicksand, "Trebuchet MS", sans-serif;
 }
 
 * {
@@ -16,5 +14,5 @@ body {
 
 body {
   margin: 0;
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-inter), "Segoe UI", Arial, sans-serif;
 }

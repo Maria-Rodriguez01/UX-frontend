@@ -1,8 +1,17 @@
+import { clearSession, getToken } from './session'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
+function redirectToLogin() {
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    clearSession()
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign('/login')
+  }
+}
+
 export async function apiRequest(path, options = {}) {
-  const token =
-    typeof window !== 'undefined' ? window.localStorage.getItem('habit-tracker.token') : null
+  const token = getToken()
 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -12,6 +21,11 @@ export async function apiRequest(path, options = {}) {
       ...options.headers,
     },
   })
+
+  if (response.status === 401 && token) {
+    redirectToLogin()
+    throw new Error('Tu sesión expiró. Inicia sesión nuevamente.')
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)

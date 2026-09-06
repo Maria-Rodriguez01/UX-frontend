@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   BarChartRounded,
   CheckCircleOutlineRounded,
@@ -10,11 +10,11 @@ import {
   LogoutRounded,
   MenuRounded,
   PersonOutlineRounded,
-  TrackChangesRounded,
-} from '@mui/icons-material'
+} from "@mui/icons-material";
 import {
   AppBar,
   Box,
+  CircularProgress,
   Divider,
   Drawer,
   IconButton,
@@ -24,24 +24,37 @@ import {
   ListItemText,
   Toolbar,
   Typography,
-} from '@mui/material'
+} from "@mui/material";
+import { useAuth } from "../hooks/useAuth";
 
-const drawerWidth = 272
+const drawerWidth = 272;
 
 const navigation = [
-  { href: '/dashboard', label: 'Dashboard', icon: DashboardRounded },
-  { href: '/habits', label: 'Mis hábitos', icon: CheckCircleOutlineRounded },
-  { href: '/statistics', label: 'Estadísticas', icon: BarChartRounded },
-  { href: '/profile', label: 'Configuración', icon: PersonOutlineRounded },
-]
+  { href: "/dashboard", label: "Dashboard", icon: DashboardRounded },
+  { href: "/habits", label: "Mis hábitos", icon: CheckCircleOutlineRounded },
+  { href: "/statistics", label: "Estadísticas", icon: BarChartRounded },
+  { href: "/profile", label: "Configuración", icon: PersonOutlineRounded },
+];
 
-function NavigationContent({ onNavigate }) {
-  const pathname = usePathname()
+function NavigationContent({ onLogout, onNavigate }) {
+  const pathname = usePathname();
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 3, py: 3 }}>
-        <TrackChangesRounded color="primary" fontSize="large" />
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 1.25, px: 3, py: 3 }}
+      >
+        <Box
+          component="img"
+          src="/images/habittracker-logo.png"
+          alt="Habit Tracker"
+          sx={{
+            width: 36,
+            height: 36,
+            objectFit: "contain",
+          }}
+        />
+
         <Typography component="p" variant="h6">
           Habit Tracker
         </Typography>
@@ -60,16 +73,16 @@ function NavigationContent({ onNavigate }) {
             sx={{ mb: 0.5 }}
           >
             <ListItemIcon>
-              <Icon color={pathname === href ? 'primary' : 'inherit'} />
+              <Icon color={pathname === href ? "primary" : "inherit"} />
             </ListItemIcon>
             <ListItemText primary={label} />
           </ListItemButton>
         ))}
       </List>
 
-      <Box sx={{ mt: 'auto', p: 1.5 }}>
+      <Box sx={{ mt: "auto", p: 1.5 }}>
         <Divider sx={{ mb: 1.5 }} />
-        <ListItemButton disabled>
+        <ListItemButton onClick={onLogout}>
           <ListItemIcon>
             <LogoutRounded />
           </ListItemIcon>
@@ -77,21 +90,50 @@ function NavigationContent({ onNavigate }) {
         </ListItemButton>
       </Box>
     </>
-  )
+  );
 }
 
 export default function AppShell({ children }) {
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { status, logout } = useAuth();
 
-  const closeMobileNavigation = () => setMobileOpen(false)
+  if (status === "loading") {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          bgcolor: "background.default",
+        }}
+      >
+        <CircularProgress aria-label="Cargando" />
+      </Box>
+    );
+  }
+
+  if (status === "unauthenticated") return null;
+
+  const closeMobileNavigation = () => setMobileOpen(false);
+  const handleLogout = () => logout();
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       <AppBar
         color="inherit"
         elevation={0}
         position="fixed"
-        sx={{ display: { md: 'none' }, borderBottom: 1, borderColor: 'divider' }}
+        sx={{
+          display: { md: "none" },
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
       >
         <Toolbar>
           <IconButton
@@ -113,19 +155,27 @@ export default function AppShell({ children }) {
           open={mobileOpen}
           onClose={closeMobileNavigation}
           slotProps={{ paper: { sx: { width: drawerWidth } } }}
-          sx={{ display: { xs: 'block', md: 'none' } }}
+          sx={{ display: { xs: "block", md: "none" } }}
           variant="temporary"
         >
-          <NavigationContent onNavigate={closeMobileNavigation} />
+          <NavigationContent onLogout={handleLogout} onNavigate={closeMobileNavigation} />
         </Drawer>
 
         <Drawer
           open
-          slotProps={{ paper: { sx: { width: drawerWidth, borderRight: 1, borderColor: 'divider' } } }}
-          sx={{ display: { xs: 'none', md: 'block' }, width: drawerWidth }}
+          slotProps={{
+            paper: {
+              sx: {
+                width: drawerWidth,
+                borderRight: 1,
+                borderColor: "divider",
+              },
+            },
+          }}
+          sx={{ display: { xs: "none", md: "block" }, width: drawerWidth }}
           variant="permanent"
         >
-          <NavigationContent />
+          <NavigationContent onLogout={handleLogout} />
         </Drawer>
       </Box>
 
@@ -142,5 +192,5 @@ export default function AppShell({ children }) {
         {children}
       </Box>
     </Box>
-  )
+  );
 }

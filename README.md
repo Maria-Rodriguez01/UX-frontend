@@ -1,16 +1,32 @@
-# React + Vite
+# Habit Tracker — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Sistema de Gestión de Hábitos y Metas Personales.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- [Next.js](https://nextjs.org) (App Router)
+- [React](https://react.dev)
+- [Material UI (MUI)](https://mui.com)
 
-## React Compiler
+## Configuración
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Instalar dependencias:
 
-## Expanding the Oxlint configuration
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Scripts
+
+- `npm run dev` — Inicia el servidor de desarrollo.
+- `npm run build` — Compila la aplicación para producción.
+- `npm run start` — Sirve la compilación de producción.
+- `npm run lint` — Ejecuta ESLint sobre el proyecto.
+
+## Variables de entorno
+
+Crear un archivo `.env.local` con las variables que la aplicación necesite:
+
+```text
+NEXT_PUBLIC_API_URL=...
+```

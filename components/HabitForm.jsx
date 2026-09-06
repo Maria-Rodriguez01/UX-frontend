@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import {
   Box,
@@ -29,11 +29,6 @@ export default function HabitForm({ cancelHref, initialValues, onSubmit, submitL
   const [values, setValues] = useState(initialValues)
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  useEffect(() => {
-    setValues(initialValues)
-    setErrors({})
-  }, [initialValues])
 
   function handleChange(event) {
     const { checked, name, type, value } = event.target
@@ -70,9 +65,9 @@ export default function HabitForm({ cancelHref, initialValues, onSubmit, submitL
         <TextField error={Boolean(errors.descripcion)} helperText={errors.descripcion} label="Descripción" multiline minRows={3} name="descripcion" onChange={handleChange} value={values.descripcion} />
         <TextField error={Boolean(errors.categoria)} helperText={errors.categoria} label="Categoría" name="categoria" onChange={handleChange} required value={values.categoria} />
         <TextField error={Boolean(errors.frecuencia)} helperText={errors.frecuencia} label="Frecuencia" name="frecuencia" onChange={handleChange} required select value={values.frecuencia}>
-          <MenuItem value="diaria">Diaria</MenuItem>
-          <MenuItem value="semanal">Semanal</MenuItem>
-          <MenuItem value="mensual">Mensual</MenuItem>
+          <MenuItem value="daily">Diaria</MenuItem>
+          <MenuItem value="weekly">Semanal</MenuItem>
+          <MenuItem value="custom">Personalizada</MenuItem>
         </TextField>
         <TextField error={Boolean(errors.prioridad)} helperText={errors.prioridad} label="Prioridad" name="prioridad" onChange={handleChange} required select value={values.prioridad}>
           <MenuItem value="baja">Baja</MenuItem>

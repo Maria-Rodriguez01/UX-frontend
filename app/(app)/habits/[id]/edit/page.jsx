@@ -21,9 +21,9 @@ export default function EditHabitPage() {
   const [feedback, setFeedback] = useState(null)
 
   const loadHabit = useCallback(async () => {
-    setError(null)
     try {
       const response = await getHabit(id)
+      setError(null)
       setHabit({
         nombre: response.nombre || '',
         descripcion: response.descripcion || response.description || '',
@@ -40,6 +40,37 @@ export default function EditHabitPage() {
   }, [id])
 
   useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const response = await getHabit(id)
+        if (cancelled) return
+        setError(null)
+        setHabit({
+          nombre: response.nombre || '',
+          descripcion: response.descripcion || response.description || '',
+          categoria: response.categoria || response.categoría || '',
+          frecuencia: response.frecuencia || '',
+          prioridad: response.prioridad || '',
+          fechaInicio: formatDate(response.fechaInicio),
+          fechaFin: formatDate(response.fechaFin),
+          activo: response.activo !== false,
+        })
+      } catch (requestError) {
+        if (cancelled) return
+        setError(requestError.message || 'No pudimos cargar el hábito. Intenta nuevamente.')
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  const handleRetry = useCallback(() => {
+    setError(null)
     loadHabit()
   }, [loadHabit])
 
@@ -64,7 +95,7 @@ export default function EditHabitPage() {
       </Box>
 
       {!habit && !error && <Stack alignItems="center" spacing={2} sx={{ py: 8 }}><CircularProgress /><Typography color="text.secondary">Cargando hábito...</Typography></Stack>}
-      {error && <Alert action={<Button color="inherit" onClick={loadHabit} size="small">Reintentar</Button>} severity="error">{error}</Alert>}
+      {error && <Alert action={<Button color="inherit" onClick={handleRetry} size="small">Reintentar</Button>} severity="error">{error}</Alert>}
       {habit && <Card><CardContent sx={{ p: { xs: 2, sm: 3 } }}><HabitForm cancelHref="/habits" initialValues={habit || emptyHabitValues} onSubmit={handleUpdate} submitLabel="Guardar cambios" /></CardContent></Card>}
 
       <FeedbackSnackbar feedback={feedback} onClose={() => setFeedback(null)} />
