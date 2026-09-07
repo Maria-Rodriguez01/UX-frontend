@@ -17,7 +17,7 @@ export default function ProfilePage() {
   if (!user) return null
 
   return (
-    <Stack component="section" spacing={3}>
+    <Stack component="section" spacing={3} sx={{ maxWidth: 760, mx: 'auto' }}>
       <Box>
         <Typography component="h1" variant="h4">Configuración</Typography>
         <Typography color="text.secondary" sx={{ mt: 0.5 }}>Tu información de cuenta.</Typography>
@@ -25,7 +25,7 @@ export default function ProfilePage() {
 
       <Card>
         <CardContent>
-          <Stack alignItems="center" direction="row" spacing={2}>
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
             <Avatar
               sx={{
                 bgcolor: 'primary.main',

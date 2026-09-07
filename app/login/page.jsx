@@ -75,7 +75,7 @@ export default function LoginPage() {
     >
       <Container maxWidth="xs">
         <Paper component="section" sx={{ p: { xs: 3, sm: 4 } }}>
-          <Stack alignItems="center" spacing={1} sx={{ mb: 4 }}>
+          <Stack spacing={1} sx={{ alignItems: 'center', mb: 4 }}>
             <Box
               component="img"
               src="/images/habittracker-logo.png"

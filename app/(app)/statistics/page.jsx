@@ -19,7 +19,7 @@ function MetricCard({ icon, label, value }) {
   return (
     <Card sx={{ flex: '1 1 210px' }}>
       <CardContent>
-        <Stack alignItems="center" direction="row" justifyContent="space-between">
+        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography color="text.secondary" variant="body2">{label}</Typography>
           {icon}
         </Stack>
@@ -32,7 +32,7 @@ function MetricCard({ icon, label, value }) {
 function ProgressBlock({ head, aggregate, total, rows, emptyMessage }) {
   return (
     <>
-      <Stack alignItems={{ sm: 'center' }} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
         <Typography component="h2" variant="h6">{head}</Typography>
         {total > 0 && (
           <Typography color="text.secondary" variant="body2">
@@ -47,7 +47,7 @@ function ProgressBlock({ head, aggregate, total, rows, emptyMessage }) {
           <LinearProgress sx={{ mt: 2 }} value={pct(aggregate, total)} variant="determinate" />
           <Stack spacing={1} sx={{ mt: 2 }}>
             {rows.map((row) => (
-              <Stack alignItems="center" direction="row" justifyContent="space-between" key={row.id}>
+              <Stack direction="row" key={row.id} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography variant="body2">{row.nombre}</Typography>
                 {row.completedComponent}
               </Stack>
@@ -155,7 +155,7 @@ export default function StatisticsPage() {
 
       {statistics && (
         <>
-          <Stack direction="row" flexWrap="wrap" gap={2}>
+          <Stack direction="row" gap={2} sx={{ flexWrap: 'wrap' }}>
             <MetricCard icon={<BarChartRounded color="primary" />} label="Total de hábitos" value={statistics.total} />
             <MetricCard icon={<CheckCircleRounded color="success" />} label="Hábitos activos" value={statistics.active} />
             <MetricCard icon={<EmojiEventsRounded color="primary" />} label="Completados hoy" value={statistics.completadosHoy} />
@@ -234,7 +234,7 @@ export default function StatisticsPage() {
                   <Stack spacing={1.5} sx={{ mt: 2 }}>
                     {statistics.byFrecuencia.map((item) => (
                       <Box key={item.label}>
-                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
+                        <Stack direction="row" sx={{ mb: 0.75, justifyContent: 'space-between' }}>
                           <Typography color="text.secondary" variant="body2">{item.label}</Typography>
                           <Typography color="text.secondary" variant="body2">{item.count}</Typography>
                         </Stack>

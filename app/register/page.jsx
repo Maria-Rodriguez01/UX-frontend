@@ -68,7 +68,7 @@ export default function RegisterPage() {
     <Box component="main" sx={{ alignItems: 'center', display: 'flex', minHeight: '100vh', py: 3 }}>
       <Container maxWidth="xs">
         <Paper component="section" sx={{ p: { xs: 3, sm: 4 } }}>
-          <Stack alignItems="center" spacing={1} sx={{ mb: 4 }}>
+          <Stack spacing={1} sx={{ alignItems: 'center', mb: 4 }}>
             <PersonAddAltRounded color="primary" sx={{ fontSize: 42 }} />
             <Typography component="h1" variant="h4">Crea tu cuenta</Typography>
             <Typography align="center" color="text.secondary">Empieza a construir hábitos que perduren.</Typography>

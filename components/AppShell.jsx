@@ -183,7 +183,6 @@ export default function AppShell({ children }) {
         component="main"
         sx={{
           flexGrow: 1,
-          ml: { md: `${drawerWidth}px` },
           minWidth: 0,
           p: { xs: 2, sm: 3, lg: 4 },
           pt: { xs: 10, md: 4 },

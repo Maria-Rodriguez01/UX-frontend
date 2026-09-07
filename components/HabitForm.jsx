@@ -79,7 +79,7 @@ export default function HabitForm({ cancelHref, initialValues, onSubmit, submitL
           <TextField error={Boolean(errors.fechaFin)} helperText={errors.fechaFin} label="Fecha de fin (opcional)" name="fechaFin" onChange={handleChange} slotProps={{ inputLabel: { shrink: true } }} type="date" value={values.fechaFin} />
         </Stack>
         <FormControlLabel control={<Switch checked={values.activo} name="activo" onChange={handleChange} />} label="Hábito activo" />
-        <Stack direction={{ xs: 'column-reverse', sm: 'row' }} justifyContent="flex-end" spacing={1.5}>
+         <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'flex-end' }}>
           <Button component={Link} disabled={isSubmitting} href={cancelHref} variant="outlined">Cancelar</Button>
           <Button disabled={isSubmitting} type="submit" variant="contained">
             {isSubmitting ? <CircularProgress color="inherit" size={22} /> : submitLabel}

@@ -12,7 +12,7 @@ export default function Home() {
         p: 3,
       }}
     >
-      <Stack alignItems="center" spacing={2} textAlign="center">
+      <Stack spacing={2} sx={{ alignItems: 'center', textAlign: 'center' }}>
         <Typography component="h1" variant="h3">
           Habit Tracker
         </Typography>

@@ -24,7 +24,7 @@ export default function CreateHabitPage() {
   }
 
   return (
-    <Stack component="section" spacing={3} sx={{ maxWidth: 760 }}>
+    <Stack component="section" spacing={3} sx={{ maxWidth: 760, mx: 'auto' }}>
       <Box>
         <Button component={Link} href="/habits" startIcon={<ArrowBackRounded />} variant="text">Volver a mis hábitos</Button>
         <Typography component="h1" sx={{ mt: 1 }} variant="h4">Crear hábito</Typography>

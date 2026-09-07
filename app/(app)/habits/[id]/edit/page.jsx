@@ -88,13 +88,13 @@ export default function EditHabitPage() {
   }
 
   return (
-    <Stack component="section" spacing={3} sx={{ maxWidth: 760 }}>
+    <Stack component="section" spacing={3} sx={{ maxWidth: 760, mx: 'auto' }}>
       <Box>
         <Button component={Link} href="/habits" startIcon={<ArrowBackRounded />} variant="text">Volver a mis hábitos</Button>
         <Typography component="h1" sx={{ mt: 1 }} variant="h4">Editar hábito</Typography>
       </Box>
 
-      {!habit && !error && <Stack alignItems="center" spacing={2} sx={{ py: 8 }}><CircularProgress /><Typography color="text.secondary">Cargando hábito...</Typography></Stack>}
+      {!habit && !error && <Stack spacing={2} sx={{ py: 8, alignItems: 'center' }}><CircularProgress /><Typography color="text.secondary">Cargando hábito...</Typography></Stack>}
       {error && <Alert action={<Button color="inherit" onClick={handleRetry} size="small">Reintentar</Button>} severity="error">{error}</Alert>}
       {habit && <Card><CardContent sx={{ p: { xs: 2, sm: 3 } }}><HabitForm cancelHref="/habits" initialValues={habit || emptyHabitValues} onSubmit={handleUpdate} submitLabel="Guardar cambios" /></CardContent></Card>}
 

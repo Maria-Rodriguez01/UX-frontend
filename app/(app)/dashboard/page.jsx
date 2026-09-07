@@ -21,7 +21,7 @@ function MetricCard({ icon, label, value }) {
   return (
     <Card sx={{ flex: '1 1 180px' }}>
       <CardContent>
-        <Stack alignItems="center" direction="row" justifyContent="space-between">
+        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography color="text.secondary" variant="body2">{label}</Typography>
           {icon}
         </Stack>
@@ -37,14 +37,14 @@ function PeriodProgress({ completados, totalDias, habits }) {
   }
   return (
     <>
-      <Stack alignItems="center" direction="row" justifyContent="space-between" spacing={1}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography color="text.secondary" variant="body2">{completados} de {totalDias} completados</Typography>
         <Typography color="text.secondary" variant="body2">{pct(completados, totalDias)}%</Typography>
       </Stack>
       <LinearProgress sx={{ mt: 1.5 }} value={pct(completados, totalDias)} variant="determinate" />
       <Stack spacing={1} sx={{ mt: 2 }}>
         {habits.map((habit) => (
-          <Stack alignItems="center" direction="row" justifyContent="space-between" key={habit.id}>
+          <Stack direction="row" key={habit.id} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="body2">{habit.nombre}</Typography>
             <Typography color="text.secondary" variant="body2">{habit.completados}/{habit.totalDias}</Typography>
           </Stack>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
 
       {dashboard && (
         <>
-          <Stack direction="row" flexWrap="wrap" gap={2}>
+          <Stack direction="row" gap={2} sx={{ flexWrap: 'wrap' }}>
             <MetricCard icon={<TodayRounded color="primary" />} label="Total de hábitos" value={dashboard.total} />
             <MetricCard icon={<CheckCircleRounded color="success" />} label="Hábitos activos" value={dashboard.activeHabits.length} />
             <MetricCard icon={<EmojiEventsRounded color="primary" />} label="Completados hoy" value={dashboard.completadosHoy} />
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                         {dashboard.dayHabits.map((habit) => {
                           const isCompleting = completingId === habit.id
                           return (
-                            <Stack alignItems="center" direction="row" justifyContent="space-between" key={habit.id}>
+                            <Stack direction="row" key={habit.id} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                               <Typography>{habit.nombre}</Typography>
                               {habit.completado ? (
                                 <Chip color="success" label="Completado" size="small" />
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                     <Stack spacing={1.5} sx={{ mt: 2 }}>
                       {dashboard.byFrecuencia.map((item) => (
                         <Stack key={item.label} spacing={0.5}>
-                          <Stack alignItems="center" direction="row" justifyContent="space-between">
+                          <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                             <Typography color="text.secondary" variant="body2">{item.label}</Typography>
                             <Typography color="text.secondary" variant="body2">{item.count}</Typography>
                           </Stack>

@@ -156,10 +156,9 @@ export default function HabitsPage() {
   return (
     <Stack component="section" spacing={3}>
       <Stack
-        alignItems={{ sm: 'center' }}
         direction={{ xs: 'column', sm: 'row' }}
-        justifyContent="space-between"
         spacing={2}
+        sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
       >
         <Box>
           <Typography component="h1" variant="h4">Mis hábitos</Typography>
@@ -217,21 +216,21 @@ export default function HabitsPage() {
             return (
               <Card key={habitId}>
                 <CardContent>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
                     <Box>
-                      <Stack alignItems="center" direction="row" spacing={1}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                         <Typography component="h2" variant="h6">{habit.nombre}</Typography>
                         <Chip color={isActive ? 'success' : 'default'} label={isActive ? 'Activo' : 'Inactivo'} size="small" />
                         {isCompleted && <Chip color="primary" label="Completado hoy" size="small" />}
                       </Stack>
                       {(habit.descripcion || habit.description) && <Typography color="text.secondary" sx={{ mt: 1 }}>{habit.descripcion || habit.description}</Typography>}
-                      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 2 }}>
+                      <Stack direction="row" gap={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
                         {(habit.categoria || habit.categoría) && <Chip label={habit.categoria || habit.categoría} size="small" variant="outlined" />}
                         {habit.frecuencia && <Chip label={frecuenciaLabel(habit.frecuencia)} size="small" variant="outlined" />}
                         {habit.prioridad && <Chip label={`Prioridad: ${habit.prioridad}`} size="small" variant="outlined" />}
                       </Stack>
                     </Box>
-                    <Stack alignItems="center" direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                       {isActive && (
                         <Button
                           disabled={!habitId || isCompleted || isCompleting}
