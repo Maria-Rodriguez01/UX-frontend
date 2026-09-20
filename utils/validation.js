@@ -1,22 +1,34 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.email("Ingresa un correo electrónico válido."),
+  email: z
+    .string()
+    .regex(
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      "Ingresa un correo electrónico válido.",
+    ),
   password: z.string().min(6, "Ingresa tu contraseña."),
 });
 
-export const registerSchema = z.object({
-  name: z.string().trim().min(2, "Ingresa tu nombre."),
-  email: z.email("Ingresa un correo electrónico válido."),
-  password: z
-    .string()
-    .min(6, "La contraseña debe tener al menos 6 caracteres."),
-  confirmPassword: z
-    .string()
-    .refine((value) => value === registerSchema.shape.password, {
-      message: "Las contraseñas no coinciden.",
-    }),
-});
+export const registerSchema = z
+  .object({
+    name: z.string().trim().min(2, "Ingresa tu nombre."),
+    email: z
+      .string()
+      .trim()
+      .regex(
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        "Ingresa un correo electrónico válido.",
+      ),
+    password: z
+      .string()
+      .min(6, "La contraseña debe tener al menos 6 caracteres."),
+    confirmPassword: z.string().min(1, "Confirma tu contraseña."),
+  })
+  .refine(({ password, confirmPassword }) => password === confirmPassword, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirmPassword"],
+  });
 
 export const habitSchema = z
   .object({
@@ -38,10 +50,6 @@ export const habitSchema = z
   .refine(({ fechaInicio, fechaFin }) => !fechaFin || fechaFin >= fechaInicio, {
     message: "La fecha de fin debe ser posterior a la fecha de inicio.",
     path: ["fechaFin"],
-  })
-  .refine(({ password, confirmPassword }) => password === confirmPassword, {
-    message: "Las contraseñas no coinciden.",
-    path: ["confirmPassword"],
   });
 
 export function getFieldErrors(validationError) {

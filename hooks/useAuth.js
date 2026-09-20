@@ -1,39 +1,36 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { clearSession, getSessionUser, getToken } from "../services/session"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { clearSession, getToken } from "../services/session";
 
 export function useAuth() {
-  const router = useRouter()
-  const [user, setUser] = useState(null)
-  const [status, setStatus] = useState("loading")
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const token = getToken()
-      const sessionUser = getSessionUser()
-      if (!token || !sessionUser) {
-        setStatus("unauthenticated")
-        return
-      }
-      setUser(sessionUser)
-      setStatus("authenticated")
+    const token = getToken();
+
+    if (!token) {
+      clearSession();
+      router.replace("/login");
+      return;
     }
-    load()
-  }, [])
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/login")
-    }
-  }, [status, router])
+    setIsAuthenticated(true);
+    setLoading(false);
+  }, [router]);
 
-  function logout() {
-    clearSession()
-    setStatus("unauthenticated")
-    router.replace("/login")
-  }
+  const logout = () => {
+    clearSession();
+    setIsAuthenticated(false);
+    router.replace("/login");
+  };
 
-  return { user, status, logout }
+  return {
+    isAuthenticated,
+    loading,
+    logout,
+  };
 }
