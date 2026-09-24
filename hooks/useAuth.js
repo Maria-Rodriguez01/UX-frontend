@@ -25,7 +25,7 @@ export function useAuth() {
   const logout = () => {
     clearSession();
     setIsAuthenticated(false);
-    router.replace("/login");
+    router.replace("/");
   };
 
   return {
