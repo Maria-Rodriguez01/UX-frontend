@@ -33,7 +33,7 @@ const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardRounded },
   { href: "/habits", label: "Mis hábitos", icon: CheckCircleOutlineRounded },
   { href: "/statistics", label: "Estadísticas", icon: BarChartRounded },
-  { href: "/profile", label: "Configuración", icon: PersonOutlineRounded },
+  { href: "/profile", label: "Mi Perfil", icon: PersonOutlineRounded },
 ];
 
 function NavigationContent({ onLogout, onNavigate }) {
@@ -158,7 +158,10 @@ export default function AppShell({ children }) {
           sx={{ display: { xs: "block", md: "none" } }}
           variant="temporary"
         >
-          <NavigationContent onLogout={handleLogout} onNavigate={closeMobileNavigation} />
+          <NavigationContent
+            onLogout={handleLogout}
+            onNavigate={closeMobileNavigation}
+          />
         </Drawer>
 
         <Drawer

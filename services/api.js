@@ -5,7 +5,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 function redirectToLogin() {
   if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
     clearSession()
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign('/login')
   }
 }
